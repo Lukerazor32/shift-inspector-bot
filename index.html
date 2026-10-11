@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shift Inspector Bot</title>
+  <meta name="description" content="Telegram-бот для охранных предприятий: сам ставит «1» в табель смен по фото сотрудников из рабочих групп. Как это работает и куда нажимать — простым языком.">
+  <meta property="og:title" content="Shift Inspector Bot — табель смен охраны по фото из Telegram">
+  <meta property="og:description" content="Бот сам ставит «1» в табель по фото с поста. Telegram: @shiftinspectorbot">
+  <meta property="og:image" content="assets/avatar.webp">
+  <link rel="icon" href="assets/avatar.webp">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=7">
+</head>
+<body>
+
+<!-- Иконки (в стиле Lucide): используются как <svg class="ico"><use href="#i-..."/></svg> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+  <symbol id="i-user-check" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-table-check" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v6M3 15h6M9 9v12"/><path d="m13 15 2 2 4-4"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+  <symbol id="i-shield-check" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-trending" viewBox="0 0 24 24"><path d="M22 7l-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3L22 7l-3-3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></symbol>
+  <symbol id="i-chat-plus" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M12 7v6M9 10h6"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+  <symbol id="i-repeat" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></symbol>
+  <symbol id="i-forward" viewBox="0 0 24 24"><path d="m15 17 5-5-5-5"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-minus-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></symbol>
+  <symbol id="i-sheet" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h2M14 13h2M8 17h2M14 17h2"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <!-- Силуэт сотрудника в форме для «фото» в чатах -->
+  <symbol id="i-guard" viewBox="0 0 100 90"><path d="M50 8c-12 0-21 4-23 13l-2 6h50l-2-6c-2-9-11-13-23-13z" fill="#1b3360"/><rect x="24" y="26" width="52" height="5" rx="2.5" fill="#12244a"/><circle cx="50" cy="42" r="15" fill="#f1c9a5"/><path d="M14 90c2-20 16-30 36-30s34 10 36 30z" fill="#24406f"/><path d="M42 60l8 12 8-12" fill="#dbe8fb"/><rect x="62" y="70" width="12" height="8" rx="2" fill="#e9a23b"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="logo" href="#top"><img src="assets/avatar.webp" alt=""><span>Shift Inspector Bot<small>@shiftinspectorbot</small></span></a>
+    <nav class="nav" id="nav">
+      <a href="#how">Как работает</a>
+      <a href="#structure">Настройка</a>
+      <a href="#roles">Инструкции</a>
+      <a href="#cases">Особые случаи</a>
+      <a href="#report">Отчёт</a>
+      <a href="#faq">Вопросы</a>
+      <a href="#launch">Запуск</a>
+      <a class="btn" href="https://t.me/shiftinspectorbot" target="_blank" rel="noopener"><svg class="ico"><use href="#i-send"/></svg>Открыть бота</a>
+    </nav>
+    <button class="burger" id="burger" aria-label="Открыть меню" aria-expanded="false" aria-controls="nav"><svg class="ico"><use href="#i-menu"/></svg></button>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow"><svg class="ico"><use href="#i-shield-check"/></svg>Учёт смен охраны в Telegram</span>
+        <h1>Фото с поста — <span class="check"><svg class="ico" style="width:.62em;height:.62em;stroke-width:3.4"><use href="#i-check"/></svg></span> отметка в&nbsp;табеле. <span class="accent">Автоматически.</span></h1>
+        <p class="lead">Охранник заступает на пост и отправляет фото в рабочую группу объекта. Бот определяет, кто это и какая смена, ставит «1» в табель и сохраняет ссылку на фото как доказательство. Табель больше не заполняется вручную.</p>
+        <div class="hero-actions">
+          <a class="btn" href="https://t.me/shiftinspectorbot" target="_blank" rel="noopener"><svg class="ico"><use href="#i-send"/></svg>Открыть @shiftinspectorbot</a>
+          <a class="btn ghost" href="#how">Как это работает <svg class="ico"><use href="#i-arrow-down"/></svg></a>
+          <a class="btn ghost" href="#roles">Инструкция для моей роли</a>
+        </div>
+        <div class="hero-points">
+          <span><svg class="ico"><use href="#i-check"/></svg>Только Telegram, без установки</span>
+          <span><svg class="ico"><use href="#i-check"/></svg>Управление кнопками</span>
+          <span><svg class="ico"><use href="#i-check"/></svg>Табель в Excel</span>
+        </div>
+      </div>
+
+      <div class="hero-stage" aria-hidden="true">
+        <div class="hero-circle"></div>
+        <img class="hero-ava" src="assets/avatar.webp" alt="">
+        <div class="badge b1"><span class="tile"><svg class="ico"><use href="#i-camera"/></svg></span><span>Фото с поста<small>07:41 · Склад №1</small></span></div>
+        <div class="phone">
+          <div class="screen">
+            <div class="tg-head">
+              <span class="tg-back">‹</span>
+              <span class="tg-ava"><svg class="ico"><use href="#i-building"/></svg></span>
+              <div><div class="tg-title">Склад №1 — смены</div><div class="tg-sub">48 участников</div></div>
+            </div>
+            <div class="tg-body" id="heroChat"></div>
+            <div class="tg-input"><svg class="ico"><use href="#i-paperclip"/></svg><span class="pill">Сообщение</span><svg class="ico"><use href="#i-mic"/></svg></div>
+          </div>
+        </div>
+        <div class="mini-sheet">
+          <header><svg class="ico"><use href="#i-sheet"/></svg>Табель · октябрь</header>
+          <table>
+            <thead><tr><th>Сотрудник</th><th>9</th><th>10</th><th>11</th></tr></thead>
+            <tbody id="heroSheet">
+              <tr><td>Иванов И.</td><td class="cell on"></td><td class="cell on"></td><td class="cell" data-who="0"></td></tr>
+              <tr><td>Петрова А.</td><td class="cell on"></td><td class="cell"></td><td class="cell" data-who="1"></td></tr>
+              <tr><td>Сидоров К.</td><td class="cell"></td><td class="cell on"></td><td class="cell" data-who="2"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="badge b2"><span class="tile green"><svg class="ico"><use href="#i-check-circle"/></svg></span><span>Отметка поставлена<small>со ссылкой на фото</small></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ЦИФРЫ ============ -->
+  <section class="stats">
+    <div class="wrap stats-grid">
+      <div class="stat"><b>200 <em>групп</em></b><span>рабочих чатов объектов — на столько рассчитан запуск</span></div>
+      <div class="stat"><b>12<em>×</em></b><span>запас по скорости: 85 фото в секунду при нужных ~7</span></div>
+      <div class="stat"><b>0</b><span>потерянных фото на нагрузочном тесте из ~4000</span></div>
+      <div class="stat"><b>1 <em>клик</em></b><span>до фото, на основании которого стоит «1»</span></div>
+    </div>
+  </section>
+
+  <!-- ============ БЫЛО / СТАЛО ============ -->
+  <section id="why">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow"><svg class="ico"><use href="#i-info"/></svg>Зачем это нужно</span>
+        <h2>Табель ведёт бот, а&nbsp;не&nbsp;диспетчер</h2>
+        <p class="lead">Раньше диспетчер просматривал сотни фото в десятках чатов объектов и вручную ставил единицы. Теперь это делает бот: быстро, без ошибок и с доказательствами.</p>
+      </div>
+      <div class="versus">
+        <div class="card before reveal">
+          <span class="tag">Было</span>
+          <h3>Ручной учёт</h3>
+          <ul class="checklist">
+            <li>Диспетчер часами просматривает фото во всех группах</li>
+            <li>Единицы переносятся в таблицу вручную — неизбежны ошибки</li>
+            <li>Непонятно, на каком основании стоит «1»</li>
+            <li>Табель готов только к концу месяца</li>
+          </ul>
+        </div>
+        <div class="card after reveal">
+          <span class="tag">Стало</span>
+          <h3>Автоматический учёт</h3>
+          <ul class="checklist">
+            <li>Бот ставит «1», как только пришло фото с поста</li>
+            <li>Спорные случаи проверяет оператор, бот не решает наугад</li>
+            <li>У каждой «1» есть ссылка на фото-основание</li>
+            <li>Актуальный табель в Excel — в любой момент</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ КАК РАБОТАЕТ ============ -->
+  <section class="bg-soft" id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow"><svg class="ico"><use href="#i-sliders"/></svg>Как это работает</span>
+        <h2>Четыре шага от фото до табеля</h2>
+        <p class="lead">Всё занимает секунды — пока охранник убирает телефон в карман.</p>
+      </div>
+      <div class="steps">
+        <div class="step reveal">
+          <div class="step-top"><span class="tile"><svg class="ico"><use href="#i-camera"/></svg></span></div>
+          <h3>Фото в группу</h3>
+          <p>Сотрудник заступил на пост и отправил фото в рабочую группу объекта. Подпись — любая.</p>
+          <div class="eg">«На посту», «Заступил», «таб 1042»</div>
+        </div>
+        <div class="step reveal">
+          <div class="step-top"><span class="tile"><svg class="ico"><use href="#i-user-check"/></svg></span></div>
+          <h3>Определение сотрудника</h3>
+          <p>По Telegram-аккаунту автора. Если аккаунт не привязан — по подписи: табельный номер, фамилия или позывной.</p>
+          <div class="eg">«таб 1042» · «Петров» · «Сокол»</div>
+        </div>
+        <div class="step reveal">
+          <div class="step-top"><span class="tile"><svg class="ico"><use href="#i-clock"/></svg></span></div>
+          <h3>Определение смены</h3>
+          <p>По времени фото. Засчитывается только фото в «окне» смены. Ночная смена — на день заступления.</p>
+          <div class="eg">Дневная в 08:00 → фото с 07:00 до 08:30</div>
+        </div>
+        <div class="step reveal">
+          <div class="step-top"><span class="tile green"><svg class="ico"><use href="#i-table-check"/></svg></span></div>
+          <h3>Отметка в табеле</h3>
+          <p>«1» встаёт в табель вместе со ссылкой на сообщение. Если есть сомнения — карточка уходит оператору.</p>
+          <div class="eg">Иванов · 11 октября · 1 · ссылка</div>
+        </div>
+      </div>
+
+      <div class="lights">
+        <div class="light green reveal">
+          <h3><svg class="ico"><use href="#i-check-circle"/></svg>Всё однозначно</h3>
+          <p>Сотрудник известен, время в окне смены, фото новое → «1» ставится автоматически.</p>
+        </div>
+        <div class="light amber reveal">
+          <h3><svg class="ico"><use href="#i-alert"/></svg>Есть сомнения</h3>
+          <p>Бот не уверен, кто на фото, сотрудник опоздал, фото похоже на старое → решение принимает оператор.</p>
+        </div>
+        <div class="light gray reveal">
+          <h3><svg class="ico"><use href="#i-minus-circle"/></svg>Не относится к смене</h3>
+          <p>Повторное фото того же сотрудника за день, фото посторонних → «1» не ставится, запись в журнале.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ КАК УСТРОЕНО ============ -->
+  <section id="structure">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow"><svg class="ico"><use href="#i-building"/></svg>Как устроено</span>
+        <h2>Объекты, рабочие группы и чаты операторов</h2>
+        <p class="lead">Три понятия, на которых держится вся настройка. Администратор связывает их кнопками в боте — один раз при подключении.</p>
+      </div>
+
+      <div class="scheme reveal">
+        <div class="scheme-col">
+          <div class="scheme-head"><span class="tile"><svg class="ico"><use href="#i-building"/></svg></span><div><b>Объекты охраны</b><small>смены и часовой пояс</small></div></div>
+          <div class="node obj-a"><b>Склад №1</b><small>Дневная 08:00 · Ночная 20:00 · Москва</small></div>
+          <div class="node obj-b"><b>Терминал «Восток»</b><small>Дневная 09:00 · Владивосток</small></div>
+        </div>
+        <div class="scheme-arrow" aria-hidden="true"><svg class="ico"><use href="#i-arrow-right"/></svg></div>
+        <div class="scheme-col">
+          <div class="scheme-head"><span class="tile"><svg class="ico"><use href="#i-users"/></svg></span><div><b>Рабочие группы</b><small>сюда охрана шлёт фото</small></div></div>
+          <div class="node obj-a"><b>Склад №1 — смены</b><span class="pin">объект: Склад №1</span><span class="pin chat-a">заявки: Операторы склада</span></div>
+          <div class="node obj-a"><b>Склад №1 — периметр</b><span class="pin">объект: Склад №1</span><span class="pin chat-a">заявки: Операторы склада</span></div>
+          <div class="node obj-b"><b>Восток — смены</b><span class="pin">объект: Терминал «Восток»</span><span class="pin chat-b">заявки: общий чат</span></div>
+        </div>
+        <div class="scheme-arrow" aria-hidden="true"><svg class="ico"><use href="#i-arrow-right"/></svg></div>
+        <div class="scheme-col">
+          <div class="scheme-head"><span class="tile amber"><svg class="ico"><use href="#i-monitor"/></svg></span><div><b>Чаты операторов</b><small>сюда приходят спорные фото</small></div></div>
+          <div class="node chat-a"><b>Операторы склада</b><small>2 группы · отдельная Telegram-группа</small></div>
+          <div class="node chat-b"><b>Общий чат</b><small>для групп без своего чата · задаётся при установке</small></div>
+        </div>
+      </div>
+
+      <div class="rules">
+        <div class="rule reveal">
+          <span class="tile"><svg class="ico"><use href="#i-building"/></svg></span>
+          <h3>Объект</h3>
+          <p>Место охраны: склад, терминал, пост. У объекта свои смены, окна засчитывания фото и часовой пояс. Табель можно выгрузить по объекту.</p>
+          <p class="how-to"><b>Как завести:</b> при подключении группы — <span class="btn-ref">➕ Новый объект</span>, или заранее в <span class="btn-ref">⚙️ Настройки</span> → <span class="btn-ref">🏢 Объекты и смены</span>.</p>
+        </div>
+        <div class="rule reveal">
+          <span class="tile"><svg class="ico"><use href="#i-users"/></svg></span>
+          <h3>Рабочая группа</h3>
+          <p>Telegram-группа, куда охранники отправляют фото с поста. Привязана к одному объекту и работает по его сменам. У объекта может быть несколько групп.</p>
+          <p class="how-to"><b>Как подключить:</b> добавить бота в группу администратором → в личке нажать объект.</p>
+        </div>
+        <div class="rule reveal">
+          <span class="tile amber"><svg class="ico"><use href="#i-monitor"/></svg></span>
+          <h3>Чат операторов</h3>
+          <p>Отдельная Telegram-группа для разбора спорных фото. Каждой рабочей группе назначается свой чат операторов; без назначения заявки идут в общий чат.</p>
+          <p class="how-to"><b>Как подключить:</b> добавить бота в группу операторов → в личке нажать <span class="btn-ref">👮 Это чат операторов</span> → <span class="btn-ref">🔗 Привязать группы</span>.</p>
+        </div>
+        <div class="rule reveal">
+          <span class="tile green"><svg class="ico"><use href="#i-key"/></svg></span>
+          <h3>Роль «Оператор»</h3>
+          <p>Быть участником чата операторов недостаточно: кнопки на карточках срабатывают только у людей с ролью «Оператор».</p>
+          <p class="how-to"><b>Как выдать:</b> <span class="btn-ref">⚙️ Настройки</span> → <span class="btn-ref">🔑 Права доступа</span> → <span class="btn-ref">➕ Выдать доступ</span>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ РОЛИ ============ -->
+  <section id="roles" class="bg-soft">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow"><svg class="ico"><use href="#i-help"/></svg>Куда нажимать</span>
+        <h2>Пошаговые инструкции по ролям</h2>
+        <p class="lead">Выберите свою роль. Слева — шаги, справа — что вы увидите в Telegram. Кнопка, которую нужно нажать, выделена <b style="color:var(--green)">зелёным</b>.</p>
+      </div>
+
+      <div class="roles-tabs" role="tablist" aria-label="Роли" id="roleTabs"></div>
+      <div class="role-panel" id="rolePanel" role="tabpanel"></div>
+    </div>
+  </section>
+
+  <!-- ============ ИНСТРУКЦИИ ДЛЯ ПЕЧАТИ / PDF: все роли и шаги разом ============ -->
+  <section id="print-guides" class="print-only bg-soft">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow"><svg class="ico"><use href="#i-help"/></svg>Куда нажимать</span>
+        <h2>Пошаговые инструкции по ролям</h2>
+        <p class="lead">Под каждым шагом — что вы увидите в Telegram. Кнопка, которую нужно нажать, выделена <b style="color:var(--green)">зелёным</b>. Бот: <b>@shiftinspectorbot</b> (t.me/shiftinspectorbot).</p>
+      </div>
+      <div id="printGuides"></div>
+    </div>
+  </section>
+
+  <!-- ============ ЗАПУСК ============ -->
+  <section class="launch" id="launch">
+    <div class="wrap">
+      <div class="section-head center">
+        <span class="eyebrow"><svg class="ico"><use href="#i-arrow-right"/></svg>Для руководителя проекта</span>
+        <h2>Запуск на объектах за 5 шагов</h2>
+        <p class="lead">Техническую установку разработчик выполняет один раз. Дальше всё настраивается кнопками прямо в Telegram, в чате с <a class="tg-link" href="https://t.me/shiftinspectorbot" target="_blank" rel="noopener">@shiftinspectorbot</a>.</p>
+      </div>
+      <div class="timeline">
+        <div class="tl-item reveal">
+          <span class="tile"><svg class="ico"><use href="#i-building"/></svg></span>
+          <div><span class="who">Администратор</span><h3>Объекты</h3><p>Объекты охраны со сменами — заранее или прямо при подключении группы.</p></div>
+        </div>
+        <div class="tl-item reveal">
+          <span class="tile"><svg class="ico"><use href="#i-chat-plus"/></svg></span>
+          <div><span class="who">Администратор</span><h3>Рабочие группы</h3><p>Бот добавляется в группы администратором, каждой выбирается объект.</p></div>
+        </div>
+        <div class="tl-item reveal">
+          <span class="tile"><svg class="ico"><use href="#i-monitor"/></svg></span>
+          <div><span class="who">Администратор</span><h3>Чаты операторов</h3><p>Группы операторов подключаются так же и привязываются к рабочим группам.</p></div>
+        </div>
+        <div class="tl-item reveal">
+          <span class="tile"><svg class="ico"><use href="#i-users"/></svg></span>
+          <div><span class="who">Администратор</span><h3>Сотрудники</h3><p>Список загружается из Excel, сотрудникам рассылаются приглашения.</p></div>
+        </div>
+        <div class="tl-item reveal">
+          <span class="tile"><svg class="ico"><use href="#i-key"/></svg></span>
+          <div><span class="who">Администратор</span><h3>Доступы</h3><p>Операторам и руководителям выдаются роли — и можно работать.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ОСОБЫЕ СЛУЧАИ ============ -->
+  <section id="cases">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow"><svg class="ico"><use href="#i-alert"/></svg>Особые случаи</span>
+        <h2>Бот не угадывает. <span class="accent">Сомневается — передаёт оператору.</span></h2>
+        <p class="lead">Нестандартные ситуации бот либо решает по заданному правилу, либо отдаёт на проверку человеку.</p>
+      </div>
+      <div class="cases">
+        <div class="case reveal">
+          <div class="q"><span class="tile"><svg class="ico"><use href="#i-image"/></svg></span>Фото без подписи</div>
+          <p class="a">Если аккаунт автора привязан к сотруднику — подпись не нужна, «1» ставится. Если не привязан, бот не знает, чей это выход: «1» не ставится, запись — в журнал.</p>
+          <span class="verdict ok">«1», если аккаунт привязан</span>
+        </div>
+        <div class="case reveal">
+          <div class="q"><span class="tile"><svg class="ico"><use href="#i-help"/></svg></span>Фамилия в подписи с ошибкой</div>
+          <p class="a">Бот не ставит «1» наугад: показывает оператору предполагаемого сотрудника — остаётся подтвердить или выбрать другого.</p>
+          <span class="verdict op">На проверку оператору</span>
+        </div>
+        <div class="case reveal">
+          <div class="q"><span class="tile"><svg class="ico"><use href="#i-users"/></svg></span>Несколько человек на одном фото</div>
+          <p class="a">Оператор выбирает одного сотрудника или нажимает «Отметить всех».</p>
+          <span class="verdict op">На проверку оператору</span>
+        </div>
+        <div class="case reveal">
+          <div class="q"><span class="tile"><svg class="ico"><use href="#i-copy"/></svg></span>Несколько фото подряд</div>
+          <p class="a">Одна «1» на человека в день. Остальные фото помечаются как дубль в журнале — табель не искажается.</p>
+          <span class="verdict log">В журнал</span>
+        </div>
+        <div class="case reveal">
+          <div class="q"><span class="tile"><svg class="ico"><use href="#i-clock"/></svg></span>Слишком рано или поздно</div>
+          <p class="a">По настройке группы: «на проверку» — решает оператор, «отклонять» — «1» не ставится.</p>
+          <span class="verdict cfg">По настройке группы</span>
+        </div>
+        <div class="case reveal">
+          <div class="q"><span class="tile"><svg class="ico"><use href="#i-history"/></svg></span>Старое или чужое фото</div>
+          <p class="a">Бот сравнивает фото с засчитанными за последние 30 дней. Похоже на повтор — проверяет оператор.</p>
+          <span class="verdict op">На проверку оператору</span>
+        </div>
+        <div class="case reveal">
+          <div class="q"><span class="tile"><svg class="ico"><use href="#i-forward"/></svg></span>Пересланное фото</div>
+          <p class="a">Пересланное сообщение не подтверждает присутствие на посту — решает оператор.</p>
+          <span class="verdict op">На проверку оператору</span>
+        </div>
+        <div class="case reveal">
+          <div class="q"><span class="tile"><svg class="ico"><use href="#i-edit"/></svg></span>Сообщение отредактировали</div>
+          <p class="a">Если после правки подпись указывает на другого человека — оператор видит, кому «1» уже засчитана, и решает.</p>
+          <span class="verdict op">На проверку оператору</span>
+        </div>
+        <div class="case reveal">
+          <div class="q"><span class="tile"><svg class="ico"><use href="#i-trash"/></svg></span>Фото удалили из группы</div>
+          <p class="a">Раз в сутки бот проверяет основания свежих отметок. Удалено — оператор решает: оставить или снять «1».</p>
+          <span class="verdict op">На проверку оператору</span>
+        </div>
+        <div class="case reveal">
+          <div class="q"><span class="tile"><svg class="ico"><use href="#i-refresh"/></svg></span>Сбой Telegram или сервера</div>
+          <p class="a">Бот замечает пропущенные сообщения и догружает их сам. Фото не теряются.</p>
+          <span class="verdict ok">Восстанавливается сам</span>
+        </div>
+        <div class="case reveal">
+          <div class="q"><span class="tile"><svg class="ico"><use href="#i-moon"/></svg></span>Ночная смена через полночь</div>
+          <p class="a">«1» ставится на день заступления — по часовому поясу объекта.</p>
+          <span class="verdict ok">Автоматически</span>
+        </div>
+        <div class="case reveal">
+          <div class="q"><span class="tile"><svg class="ico"><use href="#i-camera"/></svg></span>Сотрудник не отправил фото</div>
+          <p class="a">Оператор ставит «1» вручную: «Отметки» → «Поставить отметку». Действие сохраняется в истории.</p>
+          <span class="verdict cfg">Вручную оператором</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ОТЧЁТ ============ -->
+  <section class="report bg-soft" id="report">
+    <div class="wrap report-grid">
+      <div class="reveal">
+        <span class="eyebrow"><svg class="ico"><use href="#i-chart"/></svg>Отчётность</span>
+        <h2>Табель в Excel за два нажатия</h2>
+        <p class="lead">Руководитель нажимает «Отчёты», выбирает месяц и объект — бот присылает готовый файл.</p>
+        <ul class="checklist">
+          <li>Сотрудники по строкам, дни месяца по столбцам, итог в конце</li>
+          <li>Каждая «1» — ссылка на фото-основание в Telegram</li>
+          <li>Лист «Журнал» — что сделано с каждым фото и почему</li>
+          <li>Лист «Спорные» — все случаи, которые разбирал оператор</li>
+        </ul>
+      </div>
+      <div class="xl reveal">
+        <div class="xl-bar"><span class="dots"><i></i><i></i><i></i></span>tabel_2026-10.xlsx</div>
+        <div class="xl-scroll" id="xlBody"></div>
+        <p class="xl-tip" id="xlTip">Наведите или нажмите на любую «1».</p>
+        <div class="xl-tabs" role="tablist">
+          <button class="xl-tab" role="tab" aria-selected="true" data-sheet="tabel">Табель</button>
+          <button class="xl-tab" role="tab" aria-selected="false" data-sheet="log">Журнал</button>
+          <button class="xl-tab" role="tab" aria-selected="false" data-sheet="review">Спорные</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ДОВЕРИЕ ============ -->
+  <section id="trust">
+    <div class="wrap">
+      <div class="section-head center">
+        <span class="eyebrow"><svg class="ico"><use href="#i-shield"/></svg>Надёжность</span>
+        <h2>Каждая отметка проверяема</h2>
+        <p class="lead">Табель становится документом с доказательной базой, а не таблицей «на доверии».</p>
+      </div>
+      <div class="trust-grid">
+        <div class="trust reveal"><span class="tile"><svg class="ico"><use href="#i-database"/></svg></span><h3>Ничего не теряется</h3><p>Каждое сообщение сначала сохраняется, затем обрабатывается. При пиковой нагрузке фото ждут в очереди.</p></div>
+        <div class="trust reveal"><span class="tile"><svg class="ico"><use href="#i-copy"/></svg></span><h3>Без двойных отметок</h3><p>Одна «1» на сотрудника в день — даже при повторной обработке или нескольких фото.</p></div>
+        <div class="trust reveal"><span class="tile"><svg class="ico"><use href="#i-link"/></svg></span><h3>Основание у каждой «1»</h3><p>Любая отметка ведёт на исходное сообщение. Спорные вопросы закрываются одним кликом.</p></div>
+        <div class="trust reveal"><span class="tile"><svg class="ico"><use href="#i-list"/></svg></span><h3>Полный журнал</h3><p>По каждому фото: принято, отклонено или на проверке, кто из операторов что решил и почему.</p></div>
+        <div class="trust reveal"><span class="tile"><svg class="ico"><use href="#i-lock"/></svg></span><h3>Фото не хранятся</h3><p>Бот хранит только ссылку на сообщение и цифровой отпечаток фото для поиска повторов. Распознавания лиц нет.</p></div>
+        <div class="trust reveal"><span class="tile"><svg class="ico"><use href="#i-trending"/></svg></span><h3>Масштабируется</h3><p>Рассчитан на 200 групп и тысячи фото в каждой в сутки. Проверено нагрузочным тестом.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section id="faq" class="bg-soft">
+    <div class="wrap">
+      <div class="section-head center">
+        <span class="eyebrow"><svg class="ico"><use href="#i-help"/></svg>Вопросы и ответы</span>
+        <h2>Коротко о главном</h2>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>Как найти бота в Telegram?</summary>
+          <div><p>Откройте ссылку <a href="https://t.me/shiftinspectorbot" target="_blank" rel="noopener">t.me/shiftinspectorbot</a> или найдите в поиске Telegram <b>@shiftinspectorbot</b>. Проверяйте имя: официальный бот — только @shiftinspectorbot, другие боты с похожими названиями к системе отношения не имеют.</p></div>
+        </details>
+        <details>
+          <summary>Сотрудникам нужно что-то устанавливать?</summary>
+          <div><p>Нет. Нужен только Telegram. Один раз открыть ссылку-приглашение — и дальше отправлять фото в рабочую группу, как и раньше.</p></div>
+        </details>
+        <details>
+          <summary>Бот пишет в рабочие группы?</summary>
+          <div><p>Нет. В группах бот только читает фото и ничего не публикует. Карточки спорных случаев уходят в отдельный чат операторов, отчёты — в личные сообщения.</p></div>
+        </details>
+        <details>
+          <summary>Можно ли проверять все фото вручную, без автоотметки?</summary>
+          <div><p>Да. У каждой группы есть переключатель «Авто-«1»». Если его выключить, все фото этой группы пойдут на подтверждение оператору.</p></div>
+        </details>
+        <details>
+          <summary>Что если сотрудник сфотографировался с чужого телефона?</summary>
+          <div><p>Нужно указать в подписи свой табельный номер, например «таб 1042», или фамилию. Бот засчитает смену этому сотруднику, а при сомнениях передаст фото оператору.</p></div>
+        </details>
+        <details>
+          <summary>Как дать доступ новому оператору или руководителю?</summary>
+          <div><p>Человек открывает <a href="https://t.me/shiftinspectorbot" target="_blank" rel="noopener">@shiftinspectorbot</a> и нажимает «Запустить» — бот покажет его Telegram ID. Администратор: <span class="btn-ref">⚙️ Настройки</span> → <span class="btn-ref">🔑 Права доступа</span> → <span class="btn-ref">➕ Выдать доступ</span> → вводит ID, выбирает роль и ФИО.</p></div>
+        </details>
+        <details>
+          <summary>Можно ли исправить табель вручную?</summary>
+          <div><p>Да. Оператор ставит или снимает отметку через <span class="btn-ref">✏️ Отметки</span>. При снятии бот запрашивает причину — всё сохраняется в истории.</p></div>
+        </details>
+        <details>
+          <summary>Где хранятся фотографии?</summary>
+          <div><p>Только в Telegram. Бот хранит ссылку на сообщение и цифровой отпечаток фото для поиска повторов. Распознавания лиц нет — биометрические данные не обрабатываются.</p></div>
+        </details>
+        <details>
+          <summary>Что будет, если сервер временно отключится?</summary>
+          <div><p>Telegram повторяет доставку сообщений до суток, а бот после включения находит пропущенные сообщения в группах и догружает их. Фото не теряются.</p></div>
+        </details>
+        <details>
+          <summary>Можно ли распределить объекты между разными операторами?</summary>
+          <div><p>Да. Создаётся несколько чатов операторов, к каждому привязываются свои группы: <span class="btn-ref">⚙️ Настройки</span> → <span class="btn-ref">👮 Чаты операторов</span> → <span class="btn-ref">🔗 Привязать группы</span>.</p></div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ФИНАЛ ============ -->
+  <section class="final">
+    <div class="wrap">
+      <div class="final-card reveal">
+        <img src="assets/avatar.webp" alt="Аватар Shift Inspector Bot">
+        <div>
+          <h2>Одно фото — одна отметка. Без ручной работы.</h2>
+          <p>Бот в Telegram: <a class="tg-link" href="https://t.me/shiftinspectorbot" target="_blank" rel="noopener">@shiftinspectorbot</a>. Выберите свою роль и пройдите инструкцию — это займёт пару минут.</p>
+          <div class="final-actions">
+            <a class="btn white" href="https://t.me/shiftinspectorbot" target="_blank" rel="noopener"><svg class="ico"><use href="#i-send"/></svg>Открыть бота</a>
+            <a class="btn outline-white" href="#roles" data-role-link="employee">Я сотрудник охраны</a>
+            <a class="btn outline-white" href="#roles" data-role-link="operator">Я оператор</a>
+            <a class="btn outline-white" href="#roles" data-role-link="manager">Я руководитель</a>
+            <a class="btn outline-white" href="#roles" data-role-link="admin">Я администратор</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="logo" href="#top"><img src="assets/avatar.webp" alt="">Shift Inspector Bot</a>
+    <span>Табель смен охраны по фото из Telegram · <a href="https://t.me/shiftinspectorbot" target="_blank" rel="noopener">@shiftinspectorbot</a></span>
+    <a href="#top">Наверх ↑</a>
+  </div>
+</footer>
+
+<script src="app.js?v=7"></script>
+</body>
+</html>
